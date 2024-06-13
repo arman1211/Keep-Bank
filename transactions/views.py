@@ -1,4 +1,6 @@
 from django.contrib import messages
+from django.conf import settings
+from django.core.mail import send_mail
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -38,6 +40,8 @@ class TransactionCreateMixin(LoginRequiredMixin, CreateView):
         return context
 
 
+
+
 class DepositMoneyView(TransactionCreateMixin):
     form_class = DepositForm
     title = 'Deposit'
@@ -63,6 +67,11 @@ class DepositMoneyView(TransactionCreateMixin):
             self.request,
             f'{"{:,.2f}".format(float(amount))}$ was deposited to your account successfully'
         )
+        subject = 'DEPOSIT'
+        message = f'Hi {self.request.user.username}, {"{:,.2f}".format(float(amount))}$ was deposited to your account successfully, Your Current Balance is {account.balance}.'
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [self.request.user.email ]
+        send_mail( subject, message, email_from, recipient_list )
 
         return super().form_valid(form)
 
@@ -82,11 +91,21 @@ class WithdrawMoneyView(TransactionCreateMixin):
         # balance = 300
         # amount = 5000
         self.request.user.account.save(update_fields=['balance'])
-
+        withdrawn_date = datetime.now()
+        formatted_date = withdrawn_date.strftime('%Y-%m-%d %H:%M:%S')
         messages.success(
             self.request,
             f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account'
         )
+        subject = 'Withdraw'
+        message = (
+            f'Hi {self.request.user.username}, {"{:,.2f}".format(float(amount))}$ was withdrawn from your account '
+            f'successfully. Your current balance is {self.request.user.account.balance:.2f}. '
+            f'The transaction was made on {formatted_date}.'
+        )
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [self.request.user.email ]
+        send_mail( subject, message, email_from, recipient_list )
 
         return super().form_valid(form)
 
