@@ -4,20 +4,21 @@ from django.core.mail import send_mail
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect,render
 from django.views import View
 from django.http import HttpResponse
 from django.views.generic import CreateView, ListView
-from transactions.constants import DEPOSIT, WITHDRAWAL,LOAN, LOAN_PAID
+from transactions.constants import DEPOSIT, WITHDRAWAL,LOAN, LOAN_PAID,TRANSFER,RECIEVE
 from datetime import datetime
 from django.db.models import Sum
 from transactions.forms import (
     DepositForm,
     WithdrawForm,
     LoanRequestForm,
+    TransferForm
 )
 from transactions.models import Transaction
-
+from accounts.models import UserBankAccount
 class TransactionCreateMixin(LoginRequiredMixin, CreateView):
     template_name = 'transactions/transaction_form.html'
     model = Transaction
@@ -200,3 +201,52 @@ class LoanListView(LoginRequiredMixin,ListView):
         queryset = Transaction.objects.filter(account=user_account,transaction_type=3)
         print(queryset)
         return queryset
+
+
+class TransferMoneyView(TransactionCreateMixin):
+    template_name='transactions/transfer_money.html'
+    form_class = TransferForm
+    title = 'Transfer Money'
+
+    def get_initial(self):
+        initial = {'transaction_type': TRANSFER} 
+        return initial
+
+    def form_valid(self, form):
+        amount = form.cleaned_data.get('amount')
+        target_account = form.cleaned_data.get('target_account')
+        source_account = self.request.user.account
+        
+
+        source_account.balance -= amount
+        source_account.save(update_fields=['balance'])
+
+
+        target_account.balance += amount
+        target_account.save(update_fields=['balance'])
+
+
+        Transaction.objects.create(
+            account=target_account,
+            amount=amount,
+            balance_after_transaction=target_account.balance,
+            transaction_type=RECIEVE  
+        )
+
+        messages.success(
+            self.request,
+            f'Successfully transferred {"{:,.2f}".format(float(amount))}$ to account ID {target_account.id}'
+        )
+
+        
+        subject = 'Money Transfer'
+        message = (
+            f'Hi {self.request.user.username}, {"{:,.2f}".format(float(amount))}$ was transferred from your account '
+            f'to account ID {target_account.id} successfully. Your current balance is {source_account.balance:.2f}. '
+            f'The transaction was made on {timezone.now().strftime("%Y-%m-%d %H:%M:%S")}.'
+        )
+        email_from = settings.EMAIL_HOST_USER
+        recipient_list = [self.request.user.email]
+        send_mail(subject, message, email_from, recipient_list)
+
+        return super().form_valid(form)

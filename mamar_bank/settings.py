@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'accounts',
     'core',
     'transactions',
+     "crispy_forms",
+    "crispy_bootstrap5",
 ]
 
 MIDDLEWARE = [
@@ -74,7 +76,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'mamar_bank.wsgi.application'
-
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 
 SECRET_KEY = env("SECRET_KEY")
