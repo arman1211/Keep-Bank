@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from .constants import ACCOUNT_TYPE, GENDER_TYPE
 # django amaderke built in user niye kaj korar facility dey
 
+class Bank(models.Model):
+    isBankrupt = models.BooleanField(default=False)
 
 class UserBankAccount(models.Model):
     user = models.OneToOneField(User, related_name='account', on_delete=models.CASCADE)

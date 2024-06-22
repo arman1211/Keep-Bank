@@ -1,5 +1,5 @@
 
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm,PasswordChangeForm
 from django import forms
 from .constants import ACCOUNT_TYPE, GENDER_TYPE
 from django.contrib.auth.models import User
@@ -125,3 +125,53 @@ class UserUpdateForm(forms.ModelForm):
             user_address.save()
 
         return user
+
+class PasswordUpdateForm(PasswordChangeForm):
+    old_password = forms.CharField(
+        label='Old Password',
+        widget=forms.PasswordInput(attrs={
+            'class': (
+                'appearance-none block w-full bg-gray-200 '
+                'text-gray-700 border border-gray-200 rounded '
+                'py-3 px-4 leading-tight focus:outline-none '
+                'focus:bg-white focus:border-gray-500'
+            ),
+            'placeholder': 'Old Password'
+        })
+    )
+    new_password1 = forms.CharField(
+        label='New Password',
+        widget=forms.PasswordInput(attrs={
+            'class': (
+                'appearance-none block w-full bg-gray-200 '
+                'text-gray-700 border border-gray-200 rounded '
+                'py-3 px-4 leading-tight focus:outline-none '
+                'focus:bg-white focus:border-gray-500'
+            ),
+            'placeholder': 'New Password'
+        })
+    )
+    new_password2 = forms.CharField(
+        label='Confirm New Password',
+        widget=forms.PasswordInput(attrs={
+            'class': (
+                'appearance-none block w-full bg-gray-200 '
+                'text-gray-700 border border-gray-200 rounded '
+                'py-3 px-4 leading-tight focus:outline-none '
+                'focus:bg-white focus:border-gray-500'
+            ),
+            'placeholder': 'Confirm New Password'
+        })
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({
+                'class': (
+                    'appearance-none block w-full bg-gray-200 '
+                    'text-gray-700 border border-gray-200 rounded '
+                    'py-3 px-4 leading-tight focus:outline-none '
+                    'focus:bg-white focus:border-gray-500'
+                )
+            })

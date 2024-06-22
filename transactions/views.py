@@ -18,7 +18,7 @@ from transactions.forms import (
     TransferForm
 )
 from transactions.models import Transaction
-from accounts.models import UserBankAccount
+from accounts.models import UserBankAccount,Bank
 class TransactionCreateMixin(LoginRequiredMixin, CreateView):
     template_name = 'transactions/transaction_form.html'
     model = Transaction
@@ -86,27 +86,33 @@ class WithdrawMoneyView(TransactionCreateMixin):
         return initial
 
     def form_valid(self, form):
-        amount = form.cleaned_data.get('amount')
 
-        self.request.user.account.balance -= form.cleaned_data.get('amount')
-        # balance = 300
-        # amount = 5000
-        self.request.user.account.save(update_fields=['balance'])
-        withdrawn_date = datetime.now()
-        formatted_date = withdrawn_date.strftime('%Y-%m-%d %H:%M:%S')
-        messages.success(
-            self.request,
-            f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account'
-        )
-        subject = 'Withdraw'
-        message = (
-            f'Hi {self.request.user.username}, {"{:,.2f}".format(float(amount))}$ was withdrawn from your account '
-            f'successfully. Your current balance is {self.request.user.account.balance:.2f}. '
-            f'The transaction was made on {formatted_date}.'
-        )
-        email_from = settings.EMAIL_HOST_USER
-        recipient_list = [self.request.user.email ]
-        send_mail( subject, message, email_from, recipient_list )
+        amount = form.cleaned_data.get('amount')
+        bank = Bank.objects.all()
+        for bnk in bank:
+            if bnk.isBankrupt == True:
+                messages.warning(self.request, 'Sorry, Bank is Bankrupt')
+            else:
+
+                self.request.user.account.balance -= form.cleaned_data.get('amount')
+                # balance = 300
+                # amount = 5000
+                self.request.user.account.save(update_fields=['balance'])
+                withdrawn_date = datetime.now()
+                formatted_date = withdrawn_date.strftime('%Y-%m-%d %H:%M:%S')
+                messages.success(
+                    self.request,
+                    f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account'
+                )
+                subject = 'Withdraw'
+                message = (
+                    f'Hi {self.request.user.username}, {"{:,.2f}".format(float(amount))}$ was withdrawn from your account '
+                    f'successfully. Your current balance is {self.request.user.account.balance:.2f}. '
+                    f'The transaction was made on {formatted_date}.'
+                )
+                email_from = settings.EMAIL_HOST_USER
+                recipient_list = [self.request.user.email ]
+                send_mail( subject, message, email_from, recipient_list )
 
         return super().form_valid(form)
 
